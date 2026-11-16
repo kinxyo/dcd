@@ -1,0 +1,17 @@
+.{
+    .name = .dcd,
+    .version = "0.1.0",
+    .fingerprint = 0xb49027cb54387fc0,
+    .minimum_zig_version = "0.17.0",
+    .dependencies = .{
+        .wayland = .{
+            .path = "../zig-work/others/zig-wayland-native",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "protocol",
+    },
+}
