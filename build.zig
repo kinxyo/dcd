@@ -21,6 +21,7 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "wayland-protocols", .module = protocols },
                 .{ .name = "wayland-client", .module = wayland_dep.module("client") },
+                .{ .name = "wayland-wire", .module = wayland_dep.module("protocol") },
             },
         }),
     });

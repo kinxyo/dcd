@@ -1,6 +1,6 @@
 # Sprint 1 — read-only watcher
 
-Status: **final, built; checkpoint pending**
+Status: **done**
 
 ## Goal
 

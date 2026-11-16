@@ -14,12 +14,12 @@ to the laptop panel and tells you. There's nothing to configure.
 
 ## Status
 
-Early. Only `dcd watch` exists so far; switching and the daemon are next.
+Early. Switching works on command; the daemon (automatic switching) is next.
 
 | | |
 |---|---|
 | `dcd watch`: live view of screens and changes | done |
-| `dcd laptop` / `dcd external`: switch, verify, fall back | planned |
+| `dcd laptop` / `dcd external`: switch, verify, fall back | done |
 | daemon: automatic mode on plug-in and unplug, notifications | planned |
 | remembered mode per monitor, toggle command for a keybind | planned |
 
@@ -32,12 +32,37 @@ Early. Only `dcd watch` exists so far; switching and the daemon are next.
 ## Build
 
 ```console
-$ zig build                 # binary at zig-out/bin/dcd
-$ zig build run -- watch
-$ zig build test
+$ make prod     # optimized build, installed to ~/bin/dcd
+$ make test
+$ make watch    # zig build run -- watch
 ```
 
+Plain `zig build` works too; the binary lands in `zig-out/bin/dcd`.
+
 ## Usage
+
+### `dcd laptop` / `dcd external`
+
+Switches to one screen and turns the other off. Each screen gets its largest resolution
+at the highest refresh rate it supports, at scale 1.
+
+```console
+$ dcd external
+external: applying HDMI-A-1 on 1920x1080@179.99 scale 1.00, eDP-1 off
+external: done
+```
+
+Every switch is checked by reading the screens back. If the compositor rejects the
+switch, or the screens don't end up as requested, dcd retries once, then falls back to
+the laptop panel. If even that fails, it turns every screen on. It never leaves you
+with no lit screen and no message.
+
+| Exit code | Meaning |
+|---|---|
+| 0 | done: the screens are as requested |
+| 1 | fell back: the switch didn't stick; the laptop panel (or every screen) is on |
+| 2 | refused: not possible, e.g. `external` with no external monitor; nothing changed |
+| 3 | nothing could be applied |
 
 ### `dcd watch`
 
