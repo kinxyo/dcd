@@ -14,14 +14,16 @@ to the laptop panel and tells you. There's nothing to configure.
 
 ## Status
 
-Early. Switching works on command; the daemon (automatic switching) is next.
+Switching, the daemon and the per-monitor memory work. A toggle command for a keybind is next.
 
 | | |
 |---|---|
 | `dcd watch`: live view of screens and changes | done |
 | `dcd laptop` / `dcd external`: switch, verify, fall back | done |
-| daemon: automatic mode on plug-in and unplug, notifications | planned |
-| remembered mode per monitor, toggle command for a keybind | planned |
+| daemon: automatic mode on plug-in and unplug, notifications | done |
+| remembered mode per monitor set | done |
+| `dcd status`, `dcd reload` | done |
+| toggle command for a keybind | planned |
 
 ## Requirements
 
@@ -41,9 +43,45 @@ Plain `zig build` works too; the binary lands in `zig-out/bin/dcd`.
 
 ## Usage
 
+### Start the daemon
+
+Start it with your compositor. In Hyprland's Lua config:
+
+```lua
+hl.on("hyprland.start", function ()
+    hl.exec_cmd("/home/you/bin/dcd daemon")
+end)
+```
+
+From then on, plugging in or unplugging a monitor applies the mode you last chose for
+that set of monitors. A set you've never chosen for gets `external` if an external
+monitor is connected, otherwise `laptop`. Successful switches are silent; fallbacks and
+failures send a desktop notification (`notify-send`).
+
+Only one daemon runs at a time. Stopping it leaves the screens as they are.
+
+### `dcd status`
+
+```console
+$ dcd status
+mode:     external (saved)
+screens:  eDP-1 off, HDMI-A-1 on 1920x1080@179.99
+match:    yes
+daemon:   running (pid 17882)
+```
+
+Read-only. Exit code 0 when the screens match the wanted mode, 1 when they don't.
+
+### `dcd reload`
+
+Asks the running daemon to check the screens now: for when you think it missed a
+change. It also re-enables switching if the daemon paused itself after the screens
+kept changing back (3 switches in 30 s for the same monitors).
+
 ### `dcd laptop` / `dcd external`
 
-Switches to one screen and turns the other off. Each screen gets its largest resolution
+Switches to one screen and turns the other off, and remembers the choice for the
+monitors connected right now; the daemon keeps to it from then on. Each screen gets its largest resolution
 at the highest refresh rate it supports, at scale 1.
 
 ```console
@@ -88,15 +126,22 @@ Each line shows:
 - its identity (make, model, serial). The identity follows the physical monitor
   whichever port it's plugged into.
 
+## Files
+
+| Path | What |
+|---|---|
+| `$XDG_STATE_HOME/dcd/modes` (`~/.local/state/dcd/modes`) | the chosen mode per monitor set, one line each |
+| `$XDG_STATE_HOME/dcd/daemon.log` | every daemon decision, timestamped in UTC |
+| `$XDG_RUNTIME_DIR/dcd.pid` | the daemon's pid and single-instance lock |
+
+A monitor set is identified by each monitor's make, model and serial, so it doesn't
+matter which port a monitor is plugged into.
+
 ## Using dcd with your compositor
 
 dcd should be the only program that configures your monitors. Don't run it alongside
-kanshi or another output manager. In Hyprland, keep only a catch-all monitor rule, for
-example:
-
-```
-monitor = , preferred, auto, auto
-```
+kanshi or another output manager, and let your compositor's own config turn every
+screen on; dcd decides which ones go off.
 
 ## How it works
 
@@ -118,9 +163,14 @@ which has no libwayland dependency. The protocol XML lives in `protocol/`, copie
 ## Layout
 
 ```
-protocol/   wlr-output-management protocol definition
+protocol/       wlr-output-management protocol definition
 src/
-  main.zig  commands, Wayland connection, event loop
-  state.zig screen snapshots and change detection (pure, unit-tested)
+  main.zig      commands and `watch`
+  outputs.zig   Wayland connection, snapshots, applying a configuration
+  switching.zig one switch: plan, apply, verify, retry, fall back
+  daemon.zig    the daemon, reload, loop guard, log
+  store.zig     the per-monitor-set mode file
+  state.zig     snapshots, change detection, planning (pure)
+  sys.zig       Linux syscalls for files, locks and processes
 specs/      development specs, one per sprint
 ```

@@ -1,6 +1,6 @@
 # dcd — display configuration daemon
 
-Status: **agreed; sprint 1 built**
+Status: **sprints 1–3 done; sprint 4 (toggle) deferred**
 
 ## Problem
 
